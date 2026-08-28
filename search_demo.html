@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Query Demo — Credential Filter</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --primary: #4f6ef7;
+      --primary-hover: #3b5de5;
+      --border: #dfe3e8;
+      --text: #23272f;
+      --text-muted: #6b7785;
+      --green: #27ae60;
+      --orange: #f39c12;
+      --red: #e74c3c;
+      --blue: #3498db;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #4f6ef7 0%, #7c5ce0 100%);
+      color: #fff;
+      padding: 28px 32px;
+      box-shadow: 0 2px 8px rgba(79, 110, 247, .25);
+    }
+    header h1 { font-size: 22px; font-weight: 700; }
+    header p  { font-size: 13px; opacity: .85; margin-top: 4px; }
+
+    /* ── Layout ── */
+    .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+    /* ── Upload Card ── */
+    .upload-card {
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 20px;
+    }
+    .upload-card:hover,
+    .upload-card.dragover {
+      border-color: var(--primary);
+      background: #f0f3ff;
+    }
+    .upload-card .icon { font-size: 40px; margin-bottom: 8px; }
+    .upload-card p    { color: var(--text-muted); font-size: 14px; }
+    .upload-card input[type="file"] { display: none; }
+
+    /* ── Filters Bar ── */
+    .filters-bar {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: none;                 /* hidden until data loaded */
+    }
+    .filters-bar.active { display: block; }
+
+    .filters-bar h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .filter-group select,
+    .filter-group input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .2s;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 110, 247, .12);
+    }
+
+    .filter-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-outline:hover { background: #f5f6fa; }
+
+    .result-count {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .result-count strong { color: var(--primary); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      overflow-x: auto;
+      display: none;
+    }
+    .table-wrap.active { display: block; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f8f9fc;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: .5px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: #f5f7ff; }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #f0f1f5;
+      white-space: nowrap;
+    }
+
+    /* ── Status badges ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-green  { background: #e8f8ef; color: var(--green); }
+    .badge-orange { background: #fef5e7; color: var(--orange); }
+    .badge-red    { background: #fdecea; color: var(--red); }
+    .badge-blue   { background: #eaf2fb; color: var(--blue); }
+    .badge-gray   { background: #f0f1f5; color: var(--text-muted); }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty .icon { font-size: 36px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 Search Query Demo — Credential Filter</h1>
+  <p>Upload your Excel file and filter across all columns instantly</p>
+</header>
+
+<div class="container">
+
+  <!-- Upload -->
+  <div class="upload-card" id="uploadCard">
+    <div class="icon">📂</div>
+    <p><strong>Click to upload</strong> or drag &amp; drop your <code>.xlsx</code> file here</p>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" />
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar" id="filtersBar">
+    <h2>⚙ Filters</h2>
+    <div class="filter-grid" id="filterGrid">
+      <!-- dynamically populated -->
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+      <button class="btn btn-outline" onclick="resetFilters()">Reset All</button>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="tableWrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+/* ───────────────────────────────────────────
+   State
+   ─────────────────────────────────────────── */
+let rawData = [];       // array of objects [{Portal: "...", ...}]
+let headers = [];       // column names
+
+/* ───────────────────────────────────────────
+   File upload handling
+   ─────────────────────────────────────────── */
+const uploadCard = document.getElementById('uploadCard');
+const fileInput  = document.getElementById('fileInput');
+
+uploadCard.addEventListener('click', () => fileInput.click());
+
+uploadCard.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadCard.classList.add('dragover');
+});
+uploadCard.addEventListener('dragleave', () => uploadCard.classList.remove('dragover'));
+uploadCard.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadCard.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+});
+
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!json.length) { alert('The file appears to be empty.'); return; }
+
+    headers = Object.keys(json[0]);
+    rawData = json.map(row => {
+      const obj = {};
+      headers.forEach(h => obj[h] = String(row[h] ?? ''));
+      return obj;
+    });
+
+    buildFilters();
+    renderTable(rawData);
+    uploadCard.style.display = 'none';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ───────────────────────────────────────────
+   Build filter controls
+   ─────────────────────────────────────────── */
+function buildFilters() {
+  const grid = document.getElementById('filterGrid');
+  grid.innerHTML = '';
+
+  headers.forEach(h => {
+    const group = document.createElement('div');
+    group.className = 'filter-group';
+
+    const unique = [...new Set(rawData.map(r => r[h]))].sort();
+    const isSmallSet = unique.length <= 15 && unique.length > 1;
+
+    if (isSmallSet) {
+      // Dropdown with "All" + each distinct value
+      group.innerHTML = `
+        <label>${h}</label>
+        <select data-col="${h}">
+          <option value="">All</option>
+          ${unique.map(v => `<option value="${v}">${v}</option>`).join('')}
+        </select>`;
+    } else {
+      // Text search (substring match)
+      group.innerHTML = `
+        <label>${h}</label>
+        <input type="text" data-col="${h}" placeholder="Search ${h}…" />`;
+    }
+    grid.appendChild(group);
+  });
+
+  document.getElementById('filtersBar').classList.add('active');
+
+  // Allow pressing Enter in text inputs to apply filters
+  grid.querySelectorAll('input[type="text"]').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') applyFilters(); });
+  });
+}
+
+/* ───────────────────────────────────────────
+   Apply filters
+   ─────────────────────────────────────────── */
+function applyFilters() {
+  let filtered = rawData;
+
+  document.querySelectorAll('#filterGrid .filter-group').forEach(group => {
+    const col = group.querySelector('[data-col]').dataset.col;
+    const el  = group.querySelector('[data-col]');
+    const val = el.value.trim().toLowerCase();
+    if (!val) return;
+
+    if (el.tagName === 'SELECT') {
+      // Exact match for dropdowns
+      filtered = filtered.filter(r => r[col] === el.value);
+    } else {
+      // Substring match for text inputs
+      filtered = filtered.filter(r => r[col].toLowerCase().includes(val));
+    }
+  });
+
+  renderTable(filtered);
+}
+
+/* ───────────────────────────────────────────
+   Reset filters
+   ─────────────────────────────────────────── */
+function resetFilters() {
+  document.querySelectorAll('#filterGrid select').forEach(s => s.value = '');
+  document.querySelectorAll('#filterGrid input[type="text"]').forEach(i => i.value = '');
+  renderTable(rawData);
+}
+
+/* ───────────────────────────────────────────
+   Render table
+   ─────────────────────────────────────────── */
+function renderTable(data) {
+  const head = document.getElementById('tableHead');
+  const body = document.getElementById('tableBody');
+  const wrap = document.getElementById('tableWrap');
+
+  // Header
+  head.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+  // Body
+  if (!data.length) {
+    body.innerHTML = `<tr><td colspan="${headers.length}" class="empty">
+      <div class="icon">🔎</div><p>No records match your filters.</p></td></tr>`;
+  } else {
+    body.innerHTML = data.map(row =>
+      '<tr>' + headers.map(h => `<td>${formatCell(h, row[h])}</td>`).join('') + '</tr>'
+    ).join('');
+  }
+
+  // Count
+  document.getElementById('resultCount').innerHTML =
+    `Showing <strong>${data.length}</strong> of <strong>${rawData.length}</strong> records`;
+
+  wrap.classList.add('active');
+}
+
+/* ───────────────────────────────────────────
+   Cell formatters (status badges, etc.)
+   ─────────────────────────────────────────── */
+function formatCell(col, val) {
+  // Status In Watch
+  if (col === 'Status In Watch') return badgeForStatus(val);
+  // Status in UI
+  if (col === 'Status in UI')    return badgeForUIStatus(val);
+  // Stored Credential
+  if (col === 'Stored Credential') return val === 'Yes'
+    ? '<span class="badge badge-green">Yes</span>'
+    : '<span class="badge badge-gray">No</span>';
+  return escapeHtml(val);
+}
+
+function badgeForStatus(v) {
+  const cls = {
+    'Connected':          'badge-green',
+    '2FA Expired':        'badge-orange',
+    'Account not Ready':  'badge-blue',
+    'Login Failed':       'badge-red',
+  }[v] || 'badge-gray';
+  return `<span class="badge ${cls}">${escapeHtml(v)}</span>`;
+}
+
+function badgeForUIStatus(v) {
+  const cls = {
+    'Connected':          'badge-green',
+    'Action Required':    'badge-orange',
+    'Download Delayed':   'badge-blue',
+    'Account not Ready':  'badge-blue',
+    'Login Failed':       'badge-red',
+  }[v] || 'badge-gray';
+  return `<span class="badge ${cls}">${escapeHtml(v)}</span>`;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+</script>
+
+</body>
+</html>

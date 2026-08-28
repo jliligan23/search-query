@@ -1,0 +1,9 @@
+services:
+  - type: static_site
+    name: credential-filter-demo
+    buildCommand: echo "Static site — no build needed"
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

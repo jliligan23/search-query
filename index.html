@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Query Demo — Credential Filter</title>
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --primary: #4f6ef7;
+      --primary-hover: #3b5de5;
+      --border: #dfe3e8;
+      --text: #23272f;
+      --text-muted: #6b7785;
+      --green: #27ae60;
+      --orange: #f39c12;
+      --red: #e74c3c;
+      --blue: #3498db;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #4f6ef7 0%, #7c5ce0 100%);
+      color: #fff;
+      padding: 28px 32px;
+      box-shadow: 0 2px 8px rgba(79, 110, 247, .25);
+    }
+    header h1 { font-size: 22px; font-weight: 700; }
+    header p  { font-size: 13px; opacity: .85; margin-top: 4px; }
+
+    /* ── Layout ── */
+    .container { max-width: 1360px; margin: 0 auto; padding: 24px; }
+
+    /* ── Global Search ── */
+    .global-search {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .global-search .icon { font-size: 20px; color: var(--text-muted); }
+    .global-search input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color .2s;
+    }
+    .global-search input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 110, 247, .12);
+    }
+    .global-search .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── Filters Bar ── */
+    .filters-bar {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .filters-bar h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .filter-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    .filter-group select,
+    .filter-group input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .2s;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 110, 247, .12);
+    }
+    .filter-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-outline:hover { background: #f5f6fa; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover { background: #219a52; }
+    .result-count {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .result-count strong { color: var(--primary); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f8f9fc;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: .5px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+    thead th:hover { background: #eef0f7; }
+    thead th .sort-arrow { margin-left: 4px; font-size: 10px; opacity: .4; }
+    thead th.sorted .sort-arrow { opacity: 1; color: var(--primary); }
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: #f5f7ff; }
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #f0f1f5;
+      white-space: nowrap;
+    }
+    tbody td.highlight { background: #fff8e1; }
+
+    /* ── Status badges ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-green  { background: #e8f8ef; color: var(--green); }
+    .badge-orange { background: #fef5e7; color: var(--orange); }
+    .badge-red    { background: #fdecea; color: var(--red); }
+    .badge-blue   { background: #eaf2fb; color: var(--blue); }
+    .badge-gray   { background: #f0f1f5; color: var(--text-muted); }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty .icon { font-size: 36px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 Search Query Demo — Credential Filter</h1>
+  <p>Filter credentials across all columns • Sort by clicking headers • Export filtered results</p>
+</header>
+
+<div class="container">
+
+  <!-- Global Search -->
+  <div class="global-search">
+    <span class="icon">🔎</span>
+    <input type="text" id="globalSearch" placeholder="Search across all columns…" />
+    <span class="hint">e.g. "Facebook", "2FA Expired", "user1048"</span>
+  </div>
+
+  <!-- Column Filters -->
+  <div class="filters-bar">
+    <h2>⚙ Column Filters</h2>
+    <div class="filter-grid" id="filterGrid"></div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+      <button class="btn btn-outline" onclick="resetFilters()">Reset All</button>
+      <button class="btn btn-green" onclick="exportCSV()">⬇ Export CSV</button>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="tableWrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   EMBEDDED DATA — generated from data_sample.xlsx
+   ═══════════════════════════════════════════ */
+const DATA = {"headers":["Portal","AccountKey","Credential ID","Username","Status In Watch","Status in UI","Stored Credential"],"rows":[{"Portal":"Facebook","AccountKey":"ak_9104823","Credential ID":"4829104","Username":"user1048","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Facebook","AccountKey":"ak_5748209","Credential ID":"7193048","Username":"jordan_m92","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Facebook","AccountKey":"ak_3029481","Credential ID":"1048293","Username":"alex_dev88","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Facebook","AccountKey":"ak_8492013","Credential ID":"8592014","Username":"sara_k04","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Facebook","AccountKey":"ak_1928405","Credential ID":"3920184","Username":"tech_guru77","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Facebook","AccountKey":"ak_6301948","Credential ID":"6481029","Username":"shadow_runner","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_9104823","Credential ID":"2839401","Username":"pixel_master","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_9104823","Credential ID":"9104823","Username":"lunar_orbit","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_3029481","Credential ID":"5748209","Username":"blade_runner01","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Spotify","AccountKey":"ak_3029481","Credential ID":"3029481","Username":"cyber_scout","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Spotify","AccountKey":"ak_2049183","Credential ID":"8492013","Username":"echo_vibe","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_8391042","Credential ID":"1928405","Username":"storm_chaser99","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_5183920","Credential ID":"6301948","Username":"neo_writer","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_9402815","Credential ID":"4720193","Username":"blue_sky42","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_1629403","Credential ID":"9283041","Username":"swift_coder","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Spotify","AccountKey":"ak_7394018","Credential ID":"3810492","Username":"dark_knight07","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Canva","AccountKey":"ak_4028193","Credential ID":"7502914","Username":"alpha_wolf23","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Canva","AccountKey":"ak_8492013","Credential ID":"2049183","Username":"mystic_river","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_8492013","Credential ID":"8391042","Username":"silver_fox88","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_8492013","Credential ID":"5183920","Username":"nova_spark","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_8391042","Credential ID":"9402815","Username":"cosmic_voyager","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_8201943","Credential ID":"1629403","Username":"hyper_link","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_1493028","Credential ID":"7394018","Username":"starlight_99","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Canva","AccountKey":"ak_5930281","Credential ID":"4028193","Username":"phantom_ghost","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Canva","AccountKey":"ak_9048192","Credential ID":"8910247","Username":"zenith_core","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_1493028","Credential ID":"2501938","Username":"matrix_neo","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"No"},{"Portal":"Canva","AccountKey":"ak_1493028","Credential ID":"6194028","Username":"astro_geek","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"},{"Portal":"Amazon.de","AccountKey":"ak_1493028","Credential ID":"3740291","Username":"velvet_touch","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"},{"Portal":"Amazon.de","AccountKey":"ak_1493028","Credential ID":"8201943","Username":"crimson_blade","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"},{"Portal":"Amazon.de","AccountKey":"ak_5204918","Credential ID":"1493028","Username":"turbo_boost","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Amazon.de","AccountKey":"ak_5204918","Credential ID":"5930281","Username":"frost_byte","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Amazon.de","AccountKey":"ak_5204918","Credential ID":"9048192","Username":"iron_clad","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Amazon.de","AccountKey":"ak_9481023","Credential ID":"2819405","Username":"sonic_wave","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Amazon.de","AccountKey":"ak_5204918","Credential ID":"7301942","Username":"amber_waves","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Amazon.de","AccountKey":"ak_7492018","Credential ID":"4619380","Username":"nexus_prime","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Amazon.de","AccountKey":"ak_6839021","Credential ID":"8192043","Username":"vortex_shift","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Amazon.de","AccountKey":"ak_6839021","Credential ID":"3502941","Username":"apex_predator","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Stripe","AccountKey":"ak_2401938","Credential ID":"6920148","Username":"lunar_eclipse","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_6839021","Credential ID":"1839402","Username":"solar_flare","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_1502948","Credential ID":"9481023","Username":"ocean_breeze","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_1502948","Credential ID":"5204918","Username":"urban_legend","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_1502948","Credential ID":"7492018","Username":"quantum_leap","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_6294013","Credential ID":"3104928","Username":"silent_hawk","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_6294013","Credential ID":"8693014","Username":"wild_card","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Stripe","AccountKey":"ak_7940182","Credential ID":"2401938","Username":"blaze_fire","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Stripe","AccountKey":"ak_1502948","Credential ID":"6839021","Username":"frosty_peaks","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Apple","AccountKey":"ak_6294013","Credential ID":"1948203","Username":"golden_gate","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Apple","AccountKey":"ak_9810394","Credential ID":"9302841","Username":"crystal_clear","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Apple","AccountKey":"ak_2491038","Credential ID":"4729108","Username":"shadow_hunter","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Apple","AccountKey":"ak_4183902","Credential ID":"8104923","Username":"midnight_owl","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Apple","AccountKey":"ak_7820194","Credential ID":"3629014","Username":"user2049","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Apple","AccountKey":"ak_2094813","Credential ID":"7940182","Username":"sam_smith85","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Apple","AccountKey":"ak_1740298","Credential ID":"1502948","Username":"chris_taylor","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Apple","AccountKey":"ak_1740298","Credential ID":"6294013","Username":"pat_morgan","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Apple","AccountKey":"ak_1740298","Credential ID":"9810394","Username":"morgan_lee","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Apple","AccountKey":"ak_9582014","Credential ID":"2491038","Username":"alex_johnson","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Google Ads","AccountKey":"ak_4183902","Credential ID":"5839201","Username":"taylor_swift01","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Google Ads","AccountKey":"ak_7820194","Credential ID":"4019283","Username":"jordan_bell","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Google Ads","AccountKey":"ak_2094813","Credential ID":"8739024","Username":"casey_jones","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Google Ads","AccountKey":"ak_6391028","Credential ID":"1394028","Username":"riley_reid99","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"No"},{"Portal":"Google Ads","AccountKey":"ak_1740298","Credential ID":"6928104","Username":"drew_barry","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Google Ads","AccountKey":"ak_9410283","Credential ID":"3201948","Username":"reese_withers","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Google Ads","AccountKey":"ak_4930281","Credential ID":"9582014","Username":"avery_stone","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Ebay.de","AccountKey":"ak_8502914","Credential ID":"4183902","Username":"quinn_fabray","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Ebay.de","AccountKey":"ak_6729014","Credential ID":"7820194","Username":"skyler_white","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Ebay.de","AccountKey":"ak_3940182","Credential ID":"2094813","Username":"dakota_fanning","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Ebay.de","AccountKey":"ak_9182043","Credential ID":"6391028","Username":"peyton_manning","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Ebay.de","AccountKey":"ak_4930281","Credential ID":"1740298","Username":"hailey_hailey","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Ebay.de","AccountKey":"ak_8502914","Credential ID":"8402913","Username":"parker_posey","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Ebay.de","AccountKey":"ak_1384029","Credential ID":"5920148","Username":"hayden_pan","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Ebay.de","AccountKey":"ak_6729014","Credential ID":"3194802","Username":"logan_paul","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Ebay.de","AccountKey":"ak_3940182","Credential ID":"7602914","Username":"finley_quinn","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Tradedoubler","AccountKey":"ak_9182043","Credential ID":"2849013","Username":"rowan_atkinson","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Tradedoubler","AccountKey":"ak_5294018","Credential ID":"9410283","Username":"emerson_fit","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Tradedoubler","AccountKey":"ak_5294018","Credential ID":"4930281","Username":"harper_lee","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Tradedoubler","AccountKey":"ak_5294018","Credential ID":"8502914","Username":"sawyer_sweet","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Tradedoubler","AccountKey":"ak_5294018","Credential ID":"1384029","Username":"reagan_omics","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"},{"Portal":"Tradedoubler","AccountKey":"ak_5294018","Credential ID":"6729014","Username":"sydney_harbor","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"},{"Portal":"Tradedoubler","AccountKey":"ak_5294018","Credential ID":"3940182","Username":"london_bridge","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"No"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"9182043","Username":"paris_hilton","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"No"},{"Portal":"Rakuten Marketing","AccountKey":"ak_9720148","Credential ID":"5294018","Username":"austin_powers","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"No"},{"Portal":"Rakuten Marketing","AccountKey":"ak_4192803","Credential ID":"7401928","Username":"dallas_cowboy","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"2830194","Username":"denver_bronco","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"No"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"8940123","Username":"phoenix_sun","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"No"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"1602948","Username":"dakota_north","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"6394012","Username":"carolina_reaper","Status In Watch":"Account not Ready","Status in UI":"Account not Ready","Stored Credential":"Yes"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"3049182","Username":"virginia_wool","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3049182","Credential ID":"9720148","Username":"georgia_peach","Status In Watch":"2FA Expired","Status in UI":"Action Required","Stored Credential":"Yes"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3920185","Credential ID":"4192803","Username":"alaska_malamute","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Rakuten Marketing","AccountKey":"ak_3920185","Credential ID":"8529014","Username":"hawaii_five0","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Shopify","AccountKey":"ak_3920185","Credential ID":"2394018","Username":"user3094","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Shopify","AccountKey":"ak_3920185","Credential ID":"7104928","Username":"dev_master99","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Shopify","AccountKey":"ak_4918203","Credential ID":"5820194","Username":"code_ninja","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"No"},{"Portal":"Shopify","AccountKey":"ak_7182904","Credential ID":"1492038","Username":"byte_builder","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Shopify","AccountKey":"ak_3920185","Credential ID":"9382014","Username":"script_kiddie","Status In Watch":"Connected","Status in UI":"Connected","Stored Credential":"Yes"},{"Portal":"Shopify","AccountKey":"ak_8401928","Credential ID":"3704918","Username":"pixel_pusher","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Finom","AccountKey":"ak_8401928","Credential ID":"8294013","Username":"web_wizard","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Finom","AccountKey":"ak_8401928","Credential ID":"2619408","Username":"data_guru","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"No"},{"Portal":"Finom","AccountKey":"ak_8401928","Credential ID":"6049281","Username":"cloud_chaser","Status In Watch":"Unknown Status","Status in UI":"Download Delayed","Stored Credential":"Yes"},{"Portal":"Finom","AccountKey":"ak_2740192","Credential ID":"4918203","Username":"stack_overflow","Status In Watch":"Login Failed","Status in UI":"Login Failed","Stored Credential":"Yes"}]};
+
+/* ───────────────────────────────────────────
+   State
+   ─────────────────────────────────────────── */
+const headers = DATA.headers;
+let rawData = DATA.rows;
+let filteredData = [...rawData];
+let sortCol = null;
+let sortDir = 'asc'; // 'asc' or 'desc'
+
+/* ───────────────────────────────────────────
+   Build filter controls
+   ─────────────────────────────────────────── */
+function buildFilters() {
+  const grid = document.getElementById('filterGrid');
+  grid.innerHTML = '';
+
+  headers.forEach(h => {
+    const group = document.createElement('div');
+    group.className = 'filter-group';
+    const unique = [...new Set(rawData.map(r => r[h]))].sort();
+    const isSmallSet = unique.length <= 15 && unique.length > 1;
+
+    if (isSmallSet) {
+      group.innerHTML = `
+        <label>${h}</label>
+        <select data-col="${h}">
+          <option value="">All</option>
+          ${unique.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')}
+        </select>`;
+    } else {
+      group.innerHTML = `
+        <label>${h}</label>
+        <input type="text" data-col="${h}" placeholder="Search ${h}…" />`;
+    }
+    grid.appendChild(group);
+  });
+
+  grid.querySelectorAll('input[type="text"]').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') applyFilters(); });
+  });
+}
+
+/* ───────────────────────────────────────────
+   Apply all filters (global + column)
+   ─────────────────────────────────────────── */
+function applyFilters() {
+  const globalVal = document.getElementById('globalSearch').value.trim().toLowerCase();
+
+  filteredData = rawData.filter(row => {
+    // Global search: match any column
+    if (globalVal) {
+      const rowText = headers.map(h => row[h]).join(' ').toLowerCase();
+      if (!rowText.includes(globalVal)) return false;
+    }
+    // Column-specific filters
+    for (const group of document.querySelectorAll('#filterGrid .filter-group')) {
+      const col = group.querySelector('[data-col]').dataset.col;
+      const el  = group.querySelector('[data-col]');
+      const val = el.value.trim();
+      if (!val) continue;
+      if (el.tagName === 'SELECT') {
+        if (row[col] !== val) return false;
+      } else {
+        if (!row[col].toLowerCase().includes(val.toLowerCase())) return false;
+      }
+    }
+    return true;
+  });
+
+  // Re-apply current sort if active
+  if (sortCol) sortData(sortCol, false);
+  renderTable();
+}
+
+/* ───────────────────────────────────────────
+   Reset
+   ─────────────────────────────────────────── */
+function resetFilters() {
+  document.getElementById('globalSearch').value = '';
+  document.querySelectorAll('#filterGrid select').forEach(s => s.value = '');
+  document.querySelectorAll('#filterGrid input[type="text"]').forEach(i => i.value = '');
+  sortCol = null;
+  sortDir = 'asc';
+  filteredData = [...rawData];
+  renderTable();
+}
+
+/* ───────────────────────────────────────────
+   Column sorting
+   ─────────────────────────────────────────── */
+function sortBy(col) {
+  if (sortCol === col) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCol = col;
+    sortDir = 'asc';
+  }
+  sortData(col, true);
+  renderTable();
+}
+
+function sortData(col, toggle) {
+  filteredData.sort((a, b) => {
+    let va = a[col] || '';
+    let vb = b[col] || '';
+    // Try numeric comparison
+    const na = Number(va), nb = Number(vb);
+    if (!isNaN(na) && !isNaN(nb)) {
+      return sortDir === 'asc' ? na - nb : nb - na;
+    }
+    // String comparison
+    va = va.toLowerCase(); vb = vb.toLowerCase();
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+/* ───────────────────────────────────────────
+   Render table
+   ─────────────────────────────────────────── */
+function renderTable() {
+  const head = document.getElementById('tableHead');
+  const body = document.getElementById('tableBody');
+  const globalVal = document.getElementById('globalSearch').value.trim().toLowerCase();
+
+  // Header with sort arrows
+  head.innerHTML = '<tr>' + headers.map(h => {
+    const arrow = sortCol === h ? (sortDir === 'asc' ? '▲' : '▼') : '▲';
+    const cls = sortCol === h ? ' class="sorted"' : '';
+    return `<th${cls} onclick="sortBy('${h.replace(/'/g, "\\'")}')">${h}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('') + '</tr>';
+
+  // Body
+  if (!filteredData.length) {
+    body.innerHTML = `<tr><td colspan="${headers.length}" class="empty">
+      <div class="icon">🔎</div><p>No records match your filters.</p></td></tr>`;
+  } else {
+    body.innerHTML = filteredData.map(row =>
+      '<tr>' + headers.map(h => {
+        let cell = formatCell(h, row[h]);
+        // Highlight global search matches
+        if (globalVal && row[h].toLowerCase().includes(globalVal)) {
+          cell = `<span class="highlight">${cell}</span>`;
+        }
+        return `<td>${cell}</td>`;
+      }).join('') + '</tr>'
+    ).join('');
+  }
+
+  document.getElementById('resultCount').innerHTML =
+    `Showing <strong>${filteredData.length}</strong> of <strong>${rawData.length}</strong> records`;
+}
+
+/* ───────────────────────────────────────────
+   Cell formatters
+   ─────────────────────────────────────────── */
+function formatCell(col, val) {
+  if (col === 'Status In Watch') return badgeForStatus(val);
+  if (col === 'Status in UI')    return badgeForUIStatus(val);
+  if (col === 'Stored Credential') return val === 'Yes'
+    ? '<span class="badge badge-green">Yes</span>'
+    : '<span class="badge badge-gray">No</span>';
+  return escapeHtml(val);
+}
+
+function badgeForStatus(v) {
+  const cls = {
+    'Connected':          'badge-green',
+    '2FA Expired':        'badge-orange',
+    'Account not Ready':  'badge-blue',
+    'Login Failed':       'badge-red',
+  }[v] || 'badge-gray';
+  return `<span class="badge ${cls}">${escapeHtml(v)}</span>`;
+}
+
+function badgeForUIStatus(v) {
+  const cls = {
+    'Connected':          'badge-green',
+    'Action Required':    'badge-orange',
+    'Download Delayed':   'badge-blue',
+    'Account not Ready':  'badge-blue',
+    'Login Failed':       'badge-red',
+  }[v] || 'badge-gray';
+  return `<span class="badge ${cls}">${escapeHtml(v)}</span>`;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* ───────────────────────────────────────────
+   Export CSV
+   ─────────────────────────────────────────── */
+function exportCSV() {
+  const rows = [headers.join(',')];
+  filteredData.forEach(row => {
+    rows.push(headers.map(h => {
+      const v = row[h] || '';
+      return v.includes(',') || v.includes('"') || v.includes('\n')
+        ? `"${v.replace(/"/g, '""')}"` : v;
+    }).join(','));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'filtered_credentials.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ───────────────────────────────────────────
+   Global search live typing
+   ─────────────────────────────────────────── */
+document.getElementById('globalSearch').addEventListener('input', () => applyFilters());
+
+/* ───────────────────────────────────────────
+   Init
+   ─────────────────────────────────────────── */
+buildFilters();
+renderTable();
+</script>
+
+</body>
+</html>
